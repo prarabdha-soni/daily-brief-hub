@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ARTICLE_CATEGORIES } from "@/lib/articles.functions";
 
 export function SiteHeader() {
-  const date = new Date().toLocaleDateString("en-GB", {
+  const date = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
     month: "long",
