@@ -12,7 +12,7 @@ import { RichTextEditor } from "@/components/rich-text-editor";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin — Financial Times" },
+      { title: "Admin — BharatPulse" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
