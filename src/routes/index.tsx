@@ -11,11 +11,11 @@ const articlesQueryOptions = queryOptions({
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BharatPulse — World, US & Global business news" },
+      { title: "BharatPulse — India & Global news, analysis" },
       {
         name: "description",
         content:
-          "News, analysis from BharatPulse on the latest in markets, economy and business in the UK, US, China and the rest of the world.",
+          "News, analysis from BharatPulse on the latest in Indian politics, business, markets, tech, sports and world affairs.",
       },
       { property: "og:title", content: "BharatPulse" },
       { property: "og:description", content: "Without fear and without favour." },
@@ -33,7 +33,7 @@ export const Route = createFileRoute("/")({
 });
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+  return new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -174,7 +174,7 @@ function HomePage() {
 
             {more.length > 0 && (
               <section className="mt-12 border-t-2 border-foreground pt-6">
-                <h2 className="mb-6 font-serif text-2xl font-bold">More from FT</h2>
+                <h2 className="mb-6 font-serif text-2xl font-bold">More from BharatPulse</h2>
                 <div className="grid gap-1 sm:grid-cols-2">
                   {more.map((a) => (
                     <ArticleListItem key={a.id} a={a} />

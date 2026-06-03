@@ -19,7 +19,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-const STORAGE_KEY = "ft-admin-pw";
+const STORAGE_KEY = "bp-admin-pw";
 
 function AdminPage() {
   const [password, setPassword] = useState<string>(() =>

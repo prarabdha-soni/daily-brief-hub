@@ -50,7 +50,7 @@ function ArticlePage() {
   const { data } = useSuspenseQuery(articleQueryOptions(slug));
   const a = data.article!;
 
-  const date = new Date(a.published_at).toLocaleDateString("en-GB", {
+  const date = new Date(a.published_at).toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
     month: "long",

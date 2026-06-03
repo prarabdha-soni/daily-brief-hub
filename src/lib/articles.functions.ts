@@ -2,15 +2,16 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const CATEGORIES = [
-  "World",
-  "US",
-  "Companies",
+  "India",
+  "Politics",
+  "Business",
   "Tech",
   "Markets",
+  "Sports",
+  "Entertainment",
+  "World",
   "Opinion",
-  "Lex",
-  "Work & Careers",
-  "Life & Arts",
+  "Lifestyle",
 ] as const;
 
 function slugify(input: string): string {
