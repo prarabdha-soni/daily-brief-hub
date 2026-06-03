@@ -1,10 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ARTICLE_CATEGORIES,
   createArticle,
   verifyAdminPassword,
+  deleteArticle,
+  seedDummyArticles,
+  listArticles,
+  type Article,
 } from "@/lib/articles.functions";
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { RichTextEditor } from "@/components/rich-text-editor";
@@ -86,14 +91,17 @@ function AdminPage() {
             </button>
           </form>
         ) : (
-          <ArticleForm
-            password={password}
-            onSignOut={() => {
-              window.sessionStorage.removeItem(STORAGE_KEY);
-              setAuthed(false);
-              setPassword("");
-            }}
-          />
+          <>
+            <ArticleForm
+              password={password}
+              onSignOut={() => {
+                window.sessionStorage.removeItem(STORAGE_KEY);
+                setAuthed(false);
+                setPassword("");
+              }}
+            />
+            <ArticleManager password={password} />
+          </>
         )}
       </main>
       <SiteFooter />
@@ -233,6 +241,117 @@ function ArticleForm({ password, onSignOut }: { password: string; onSignOut: () 
         </button>
       </div>
     </form>
+  );
+}
+
+function ArticleManager({ password }: { password: string }) {
+  const qc = useQueryClient();
+  const deleteFn = useServerFn(deleteArticle);
+  const seedFn = useServerFn(seedDummyArticles);
+
+  const [articles, setArticles] = useState<Article[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [msg, setMsg] = useState("");
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await listArticles();
+      setArticles(res.articles);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSeed() {
+    if (!confirm("Insert dummy articles? Existing slugs will be skipped.")) return;
+    setSeeding(true);
+    setMsg("");
+    try {
+      const res = await seedFn({ data: { password } });
+      setMsg(`Seeded ${res.inserted} new article(s).`);
+      await load();
+      qc.invalidateQueries({ queryKey: ["articles"] });
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Seed failed");
+    } finally {
+      setSeeding(false);
+    }
+  }
+
+  async function handleDelete(id: string, title: string) {
+    if (!confirm(`Delete "${title}"?`)) return;
+    setDeletingId(id);
+    setMsg("");
+    try {
+      await deleteFn({ data: { password, id } });
+      setArticles((prev) => prev?.filter((a) => a.id !== id) ?? null);
+      qc.invalidateQueries({ queryKey: ["articles"] });
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  return (
+    <div className="mt-14 border-t-2 border-foreground pt-8 font-sans">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-serif text-2xl font-bold">Manage Articles</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSeed}
+            disabled={seeding}
+            className="rounded border border-border px-4 py-1.5 text-sm font-semibold transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            {seeding ? "Seeding…" : "Seed dummy articles"}
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="rounded bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Loading…" : articles === null ? "Load articles" : "Refresh"}
+          </button>
+        </div>
+      </div>
+
+      {msg && (
+        <p className="mb-4 rounded border border-border bg-muted px-3 py-2 text-sm">{msg}</p>
+      )}
+
+      {articles !== null && (
+        <div className="space-y-0 divide-y divide-border rounded border border-border">
+          {articles.length === 0 && (
+            <p className="px-4 py-6 text-center text-sm text-muted-foreground">No articles yet.</p>
+          )}
+          {articles.map((a) => (
+            <div key={a.id} className="flex items-start gap-4 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-serif text-base font-semibold leading-tight">{a.title}</p>
+                <p className="mt-0.5 font-sans text-[11px] text-muted-foreground">
+                  {a.category} · {a.author} ·{" "}
+                  {new Date(a.published_at).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+              <button
+                onClick={() => handleDelete(a.id, a.title)}
+                disabled={deletingId === a.id}
+                className="shrink-0 rounded px-3 py-1 text-xs font-semibold text-destructive ring-1 ring-destructive/40 transition-colors hover:bg-destructive/10 disabled:opacity-50"
+              >
+                {deletingId === a.id ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
