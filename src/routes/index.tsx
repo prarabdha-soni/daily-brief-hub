@@ -11,13 +11,13 @@ const articlesQueryOptions = queryOptions({
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Financial Times — World, US & Global business news" },
+      { title: "BharatPulse — World, US & Global business news" },
       {
         name: "description",
         content:
-          "News, analysis from the Financial Times on the latest in markets, economy and business in the UK, US, China and the rest of the world.",
+          "News, analysis from BharatPulse on the latest in markets, economy and business in the UK, US, China and the rest of the world.",
       },
-      { property: "og:title", content: "Financial Times" },
+      { property: "og:title", content: "BharatPulse" },
       { property: "og:description", content: "Without fear and without favour." },
     ],
   }),
