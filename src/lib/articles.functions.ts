@@ -261,8 +261,8 @@ export const seedDummyArticles = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error, count } = await supabaseAdmin
       .from("articles")
-      .upsert(DUMMY_ARTICLES, { onConflict: "slug", ignoreDuplicates: true })
-      .select("id", { count: "exact", head: true });
+      .upsert(DUMMY_ARTICLES, { onConflict: "slug", ignoreDuplicates: true, count: "exact" })
+      .select("id");
     if (error) throw new Error(error.message);
     return { inserted: count ?? 0 };
   });
