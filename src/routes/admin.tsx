@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ARTICLE_CATEGORIES,
@@ -252,6 +252,8 @@ function ArticleManager({ password }: { password: string }) {
   const [articles, setArticles] = useState<Article[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
+
+  useEffect(() => { load(); }, []);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
 

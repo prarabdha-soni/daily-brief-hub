@@ -27,7 +27,7 @@ export function SiteHeader() {
       <div className="mx-auto max-w-[1280px] px-4 py-5 text-center">
         <Link to="/" className="inline-block">
           <h1 className="font-serif text-3xl font-black tracking-tight sm:text-5xl">
-            BHARAT<span className="text-primary">PULSE</span>
+            BHARAT <span className="text-primary">PULSE</span>
           </h1>
           <p className="mt-1 font-sans text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
             News that moves the nation
@@ -60,10 +60,10 @@ export function SiteFooter() {
         <div className="flex flex-col gap-6 sm:flex-row sm:justify-between">
           <div>
             <p className="font-serif text-2xl font-bold">
-              BHARAT<span className="text-primary">PULSE</span>
+              BHARAT <span className="text-primary">PULSE</span>
             </p>
             <p className="mt-2 text-background/70">
-              © {new Date().getFullYear()} BharatPulse. All rights reserved.
+              © {new Date().getFullYear()} Bharat Pulse. All rights reserved.
             </p>
           </div>
           <div className="flex gap-6 text-background/80">
