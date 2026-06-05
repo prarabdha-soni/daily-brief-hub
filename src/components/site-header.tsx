@@ -1,13 +1,21 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ARTICLE_CATEGORIES } from "@/lib/articles.functions";
 
-export function SiteHeader() {
-  const date = new Date().toLocaleDateString("en-IN", {
+function formatDate(d: Date) {
+  return d.toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+}
+
+export function SiteHeader() {
+  const [date, setDate] = useState("");
+  useEffect(() => {
+    setDate(formatDate(new Date()));
+  }, []);
 
   return (
     <header className="bg-background font-sans">
