@@ -23,7 +23,7 @@ export function SiteHeader() {
       <div className="border-b border-border/70">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between px-4 py-1.5 text-[11px] font-medium uppercase tracking-wider text-foreground/80">
           <div className="flex items-center gap-4">
-            <span>{date}</span>
+            <span suppressHydrationWarning>{date || "\u00A0"}</span>
             <span className="hidden border-l border-border/70 pl-4 text-primary md:inline">
               SENSEX 74,320 <span className="text-emerald-700">+0.4%</span>
             </span>
