@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import url("https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;500;600;700&display=swap");
 
 @custom-variant dark (&:is(.dark *));
 
@@ -63,8 +64,8 @@
   --input: oklch(0.88 0.022 60);
   --ring: oklch(0.36 0.14 11);
 
-  --font-serif: "Georgia", "Times New Roman", "Times", serif;
-  --font-sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-serif: "Libre Baskerville", "Georgia", "Times New Roman", serif;
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
 }
 
 .dark {

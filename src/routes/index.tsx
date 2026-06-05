@@ -32,21 +32,29 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 36e5);
+  if (h < 1) return `${Math.max(1, Math.floor(diff / 6e4))} min ago`;
+  if (h < 24) return `${h} hour${h === 1 ? "" : "s"} ago`;
+  const d = Math.floor(h / 24);
+  return `${d} day${d === 1 ? "" : "s"} ago`;
 }
 
-function ArticleHeroCard({ a }: { a: Article }) {
+function articleHref(a: Article) {
+  return { to: "/article/$slug" as const, params: { slug: a.slug } };
+}
+
+function LeadArticle({ a }: { a: Article }) {
   return (
-    <Link
-      to="/article/$slug"
-      params={{ slug: a.slug }}
-      className="group block border-b border-border pb-6"
-    >
+    <Link {...articleHref(a)} className="group block">
+      <span className="mb-1 block font-serif text-sm italic text-primary">{a.category}</span>
+      <h2 className="mb-3 font-serif text-3xl font-bold leading-tight decoration-primary decoration-1 group-hover:underline md:text-4xl">
+        {a.title}
+      </h2>
+      {a.subtitle && (
+        <p className="mb-4 font-sans text-sm leading-relaxed text-foreground/70">{a.subtitle}</p>
+      )}
       {a.cover_image_url && (
         <img
           src={a.cover_image_url}
@@ -55,50 +63,60 @@ function ArticleHeroCard({ a }: { a: Article }) {
           loading="lazy"
         />
       )}
-      <p className="mb-2 font-sans text-xs font-bold uppercase tracking-wider text-primary">
-        {a.category}
-      </p>
-      <h2 className="font-serif text-3xl font-bold leading-tight text-foreground group-hover:underline sm:text-4xl">
+      <div className="flex items-center gap-2 font-sans text-[11px] font-bold uppercase text-muted-foreground">
+        <span>{timeAgo(a.published_at)}</span>
+        <span className="h-1 w-1 rounded-full bg-border" />
+        <span>{a.author}</span>
+      </div>
+    </Link>
+  );
+}
+
+function SubLead({ a }: { a: Article }) {
+  return (
+    <Link {...articleHref(a)} className="group block">
+      <span className="mb-1 block font-serif text-xs italic text-primary">{a.category}</span>
+      <h3 className="mb-2 font-serif text-lg font-bold leading-snug group-hover:underline">
         {a.title}
-      </h2>
+      </h3>
       {a.subtitle && (
-        <p className="mt-3 font-serif text-lg leading-snug text-muted-foreground">
-          {a.subtitle}
-        </p>
+        <p className="font-sans text-xs text-foreground/60 line-clamp-2">{a.subtitle}</p>
       )}
-      <p className="mt-3 font-sans text-xs text-muted-foreground">
-        {a.author} · {formatDate(a.published_at)}
+    </Link>
+  );
+}
+
+function OpinionItem({ a, withQuote }: { a: Article; withQuote?: boolean }) {
+  return (
+    <Link {...articleHref(a)} className="group relative block">
+      {withQuote && (
+        <span className="absolute -left-2 top-0 font-serif text-4xl font-bold text-primary opacity-20">
+          “
+        </span>
+      )}
+      <h3
+        className={`mb-2 font-serif text-base font-bold leading-tight group-hover:underline ${withQuote ? "pl-4" : ""}`}
+      >
+        {a.title}
+      </h3>
+      <p className={`font-sans text-xs text-muted-foreground ${withQuote ? "pl-4" : ""}`}>
+        By {a.author}
       </p>
     </Link>
   );
 }
 
-function ArticleListItem({ a, showImage = false }: { a: Article; showImage?: boolean }) {
+function LatestItem({ a }: { a: Article }) {
+  const time = new Date(a.published_at).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
   return (
-    <Link
-      to="/article/$slug"
-      params={{ slug: a.slug }}
-      className="group block border-b border-border py-4"
-    >
-      {showImage && a.cover_image_url && (
-        <img
-          src={a.cover_image_url}
-          alt=""
-          className="mb-3 aspect-[16/9] w-full object-cover"
-          loading="lazy"
-        />
-      )}
-      <p className="mb-1 font-sans text-[11px] font-bold uppercase tracking-wider text-primary">
-        {a.category}
-      </p>
-      <h3 className="font-serif text-xl font-bold leading-tight text-foreground group-hover:underline">
+    <Link {...articleHref(a)} className="group flex gap-3">
+      <span className="shrink-0 font-sans text-sm font-bold text-primary">{time}</span>
+      <p className="font-sans text-xs font-medium leading-snug group-hover:text-primary">
         {a.title}
-      </h3>
-      {a.subtitle && (
-        <p className="mt-1 font-serif text-sm text-muted-foreground line-clamp-2">{a.subtitle}</p>
-      )}
-      <p className="mt-2 font-sans text-[11px] text-muted-foreground">
-        {a.author} · {formatDate(a.published_at)}
       </p>
     </Link>
   );
@@ -123,19 +141,17 @@ function HomePage() {
   const { data } = useSuspenseQuery(articlesQueryOptions);
   const search = Route.useSearch();
   const all = data.articles;
-  const filtered = search.category
-    ? all.filter((a) => a.category === search.category)
-    : all;
+  const filtered = search.category ? all.filter((a) => a.category === search.category) : all;
 
-  const [lead, ...rest] = filtered;
-  const secondary = rest.slice(0, 4);
-  const tertiary = rest.slice(4, 10);
-  const more = rest.slice(10);
+  const lead = filtered[0];
+  const sublead = filtered.slice(1, 3);
+  const opinion = filtered.slice(3, 6);
+  const latest = filtered.slice(6, 12);
 
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main className="mx-auto max-w-[1280px] px-4 py-8">
+      <main className="mx-auto max-w-[1280px] px-4 pb-20 md:px-8">
         {search.category && (
           <div className="mb-6 flex items-baseline justify-between border-b-2 border-foreground pb-2">
             <h2 className="font-serif text-2xl font-bold">{search.category}</h2>
@@ -148,41 +164,67 @@ function HomePage() {
         {filtered.length === 0 ? (
           <EmptyState />
         ) : (
-          <>
-            <div className="grid gap-8 lg:grid-cols-3">
-              <div className="lg:col-span-2">{lead && <ArticleHeroCard a={lead} />}</div>
-              <div className="space-y-1 lg:border-l lg:border-border lg:pl-8">
-                <p className="mb-3 font-sans text-xs font-bold uppercase tracking-wider">
-                  Top stories
-                </p>
-                {secondary.map((a) => (
-                  <ArticleListItem key={a.id} a={a} />
-                ))}
-              </div>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
+            {/* Primary Column */}
+            <div className="md:col-span-6 md:border-r md:border-border md:pr-8">
+              {lead && <LeadArticle a={lead} />}
+              {sublead.length > 0 && (
+                <>
+                  <hr className="my-8 border-border" />
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    {sublead.map((a) => (
+                      <SubLead key={a.id} a={a} />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
-            {tertiary.length > 0 && (
-              <section className="mt-12 border-t-2 border-foreground pt-6">
-                <h2 className="mb-6 font-serif text-2xl font-bold">Latest</h2>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {tertiary.map((a) => (
-                    <ArticleListItem key={a.id} a={a} showImage />
+            {/* Opinion Column */}
+            <aside className="md:col-span-3 md:border-r md:border-border md:pr-8">
+              <h4 className="mb-4 border-b border-foreground pb-1 font-sans text-xs font-bold uppercase">
+                Opinion & Analysis
+              </h4>
+              {opinion.length === 0 ? (
+                <p className="font-sans text-xs text-muted-foreground">No opinions yet.</p>
+              ) : (
+                <div className="space-y-6">
+                  {opinion.map((a, i) => (
+                    <div
+                      key={a.id}
+                      className={i > 0 ? "border-t border-border pt-6" : ""}
+                    >
+                      <OpinionItem a={a} withQuote={i === 0} />
+                    </div>
                   ))}
                 </div>
-              </section>
-            )}
+              )}
+            </aside>
 
-            {more.length > 0 && (
-              <section className="mt-12 border-t-2 border-foreground pt-6">
-                <h2 className="mb-6 font-serif text-2xl font-bold">More from Bharat Pulse</h2>
-                <div className="grid gap-1 sm:grid-cols-2">
-                  {more.map((a) => (
-                    <ArticleListItem key={a.id} a={a} />
+            {/* Latest Column */}
+            <aside className="md:col-span-3">
+              <h4 className="mb-4 border-b border-foreground pb-1 font-sans text-xs font-bold uppercase">
+                Latest Updates
+              </h4>
+              {latest.length === 0 ? (
+                <p className="font-sans text-xs text-muted-foreground">No updates yet.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {latest.map((a, i) => (
+                    <li key={a.id} className={i > 0 ? "border-t border-border pt-4" : ""}>
+                      <LatestItem a={a} />
+                    </li>
                   ))}
-                </div>
-              </section>
-            )}
-          </>
+                </ul>
+              )}
+              <Link
+                to="/"
+                className="mt-6 block border border-foreground py-2 text-center font-sans text-[10px] font-bold uppercase tracking-widest transition-colors hover:bg-foreground hover:text-background"
+              >
+                View All News
+              </Link>
+            </aside>
+          </div>
         )}
       </main>
       <SiteFooter />
