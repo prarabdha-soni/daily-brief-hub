@@ -1,3 +1,5 @@
+"use client";
+
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -99,9 +101,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       >
         Image
       </ToolbarButton>
-      <ToolbarButton onClick={() => editor.chain().focus().setParagraph().run()}>
-        ¶
-      </ToolbarButton>
+      <ToolbarButton onClick={() => editor.chain().focus().setParagraph().run()}>¶</ToolbarButton>
     </div>
   );
 }

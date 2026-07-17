@@ -5,9 +5,7 @@ let clientPromise: Promise<MongoClient> | null = null;
 export function getMongoClient(): Promise<MongoClient> {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
-    throw new Error(
-      "Missing MONGODB_URI environment variable. Set it in your .env file.",
-    );
+    throw new Error("Missing MONGODB_URI environment variable. Set it in your .env file.");
   }
   if (!clientPromise) {
     const client = new MongoClient(uri);

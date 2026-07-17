@@ -1,6 +1,9 @@
-import { Link } from "@tanstack/react-router";
+"use client";
+
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ARTICLE_CATEGORIES } from "@/lib/articles.functions";
+
+import { ARTICLE_CATEGORIES } from "@/lib/articles";
 
 function formatDate(d: Date) {
   return d.toLocaleDateString("en-IN", {
@@ -29,7 +32,7 @@ export function SiteHeader() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/admin" className="transition-colors hover:text-primary">
+            <Link href="/admin" className="transition-colors hover:text-primary">
               Admin
             </Link>
             <span className="hidden cursor-pointer transition-colors hover:text-primary sm:inline">
@@ -44,7 +47,7 @@ export function SiteHeader() {
 
       {/* Masthead */}
       <div className="mx-4 border-b-[3px] border-foreground pt-8 pb-4 text-center md:mx-8">
-        <Link to="/" className="inline-block">
+        <Link href="/" className="inline-block">
           <h1 className="font-serif text-5xl font-bold tracking-tight md:text-7xl">
             BHARAT <span className="text-primary">PULSE</span>
           </h1>
@@ -60,8 +63,7 @@ export function SiteHeader() {
           {ARTICLE_CATEGORIES.map((cat) => (
             <li key={cat}>
               <Link
-                to="/"
-                search={{ category: cat }}
+                href={{ pathname: "/", query: { category: cat } }}
                 className="border-b-2 border-transparent pb-1 transition-colors hover:border-primary hover:text-primary"
               >
                 {cat}
@@ -96,8 +98,8 @@ export function SiteFooter() {
           </div>
         </div>
         <p className="max-w-2xl font-sans text-[10px] leading-relaxed text-neutral-500">
-          Bharat Pulse is India's independent news organization. Our mission is to deliver
-          rigorous, ethical, and fearless journalism that informs the citizens of the nation.
+          Bharat Pulse is India's independent news organization. Our mission is to deliver rigorous,
+          ethical, and fearless journalism that informs the citizens of the nation.
         </p>
       </div>
     </footer>

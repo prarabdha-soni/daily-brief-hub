@@ -1,7 +1,11 @@
+/* Must stay first: `@import "tailwindcss"` below is inlined, so any url() import
+   placed after it lands mid-stylesheet and Turbopack rejects it — @import rules
+   have to precede all other rules. */
+@import url("https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;500;600;700&display=swap");
+
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
-@import url("https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;500;600;700&display=swap");
 
 @custom-variant dark (&:is(.dark *));
 
