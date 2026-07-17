@@ -9,7 +9,13 @@ export function getMongoClient(): Promise<MongoClient> {
   }
   if (!clientPromise) {
     const client = new MongoClient(uri);
-    clientPromise = client.connect();
+    // Don't cache a rejected promise: if the first connect fails (bad URI, Atlas
+    // IP block), a cached rejection would make every later request in this warm
+    // instance fail identically until it cold-starts. Clear it so the next call retries.
+    clientPromise = client.connect().catch((err) => {
+      clientPromise = null;
+      throw err;
+    });
   }
   return clientPromise;
 }

@@ -119,6 +119,11 @@ function ArticleForm({ password, onSignOut }: { password: string; onSignOut: () 
         author,
         cover_image_url: coverUrl,
       });
+      if (!res.ok) {
+        setError(res.error);
+        setSubmitting(false);
+        return;
+      }
       router.push(`/article/${res.slug}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to publish");
@@ -246,6 +251,10 @@ function ArticleManager({ password }: { password: string }) {
     setMsg("");
     try {
       const res = await seedDummyArticles({ password });
+      if (!res.ok) {
+        setMsg(res.error);
+        return;
+      }
       setMsg(`Seeded ${res.inserted} new article(s).`);
       await load();
     } catch (e) {
@@ -260,7 +269,11 @@ function ArticleManager({ password }: { password: string }) {
     setDeletingId(id);
     setMsg("");
     try {
-      await deleteArticle({ password, id });
+      const res = await deleteArticle({ password, id });
+      if (!res.ok) {
+        setMsg(res.error);
+        return;
+      }
       setArticles((prev) => prev?.filter((a) => a.id !== id) ?? null);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Delete failed");

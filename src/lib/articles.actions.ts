@@ -9,11 +9,29 @@ import { z } from "zod";
 import { ARTICLE_CATEGORIES, slugify, type ArticleDoc } from "./articles";
 import { getArticlesCollection } from "./articles.queries";
 
-function assertAdmin(password: string) {
+// Returning errors as values (rather than throwing) is deliberate: Next.js
+// replaces any error THROWN from a Server Action with an opaque generic message
+// + digest in production, so the admin form could never show why a publish
+// failed. A returned value is plain data and reaches the client intact.
+type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
+
+function adminError(password: string): string | null {
   const adminPw = process.env.ADMIN_PASSWORD;
-  if (!adminPw || password !== adminPw) {
-    throw new Error("Invalid admin password");
-  }
+  if (!adminPw) return "Server is missing ADMIN_PASSWORD configuration.";
+  if (password !== adminPw) return "Invalid admin password.";
+  return null;
+}
+
+// Logs the real cause (visible in Vercel Runtime Logs) and returns a safe,
+// actionable message. The two production culprits are a missing MONGODB_URI and
+// an Atlas Network Access rule that doesn't allow the serverless function's IP.
+function dbFailure(context: string, err: unknown): { ok: false; error: string } {
+  console.error(`[articles] ${context} failed:`, err);
+  return {
+    ok: false,
+    error:
+      "Could not reach the database. Verify MONGODB_URI is set and that MongoDB Atlas Network Access allows your server (add 0.0.0.0/0 for Vercel).",
+  };
 }
 
 const createSchema = z.object({
@@ -32,61 +50,84 @@ export async function verifyAdminPassword(input: { password: string }) {
   return { ok: !!adminPw && data.password === adminPw };
 }
 
-export async function createArticle(input: z.input<typeof createSchema>) {
-  const data = createSchema.parse(input);
-  assertAdmin(data.password);
-
-  const col = await getArticlesCollection();
-  const baseSlug = slugify(data.title);
-  let slug = baseSlug || `article-${Date.now()}`;
-  let attempt = 0;
-  while (attempt < 5) {
-    const existing = await col.findOne({ slug }, { projection: { _id: 1 } });
-    if (!existing) break;
-    attempt += 1;
-    slug = `${baseSlug}-${attempt + 1}`;
+export async function createArticle(
+  input: z.input<typeof createSchema>,
+): Promise<ActionResult<{ slug: string }>> {
+  const parsed = createSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Please fill in every required field correctly." };
   }
+  const data = parsed.data;
 
-  const now = new Date();
-  await col.insertOne({
-    slug,
-    title: data.title,
-    subtitle: data.subtitle || null,
-    body: data.body,
-    category: data.category,
-    author: data.author,
-    cover_image_url: data.cover_image_url || null,
-    published_at: now,
-    created_at: now,
-  } as ArticleDoc);
+  const authErr = adminError(data.password);
+  if (authErr) return { ok: false, error: authErr };
 
-  revalidatePath("/");
-  revalidatePath(`/article/${slug}`);
-  return { slug };
+  try {
+    const col = await getArticlesCollection();
+    const baseSlug = slugify(data.title);
+    let slug = baseSlug || `article-${Date.now()}`;
+    let attempt = 0;
+    while (attempt < 5) {
+      const existing = await col.findOne({ slug }, { projection: { _id: 1 } });
+      if (!existing) break;
+      attempt += 1;
+      slug = `${baseSlug}-${attempt + 1}`;
+    }
+
+    const now = new Date();
+    await col.insertOne({
+      slug,
+      title: data.title,
+      subtitle: data.subtitle || null,
+      body: data.body,
+      category: data.category,
+      author: data.author,
+      cover_image_url: data.cover_image_url || null,
+      published_at: now,
+      created_at: now,
+    } as ArticleDoc);
+
+    revalidatePath("/");
+    revalidatePath(`/article/${slug}`);
+    return { ok: true, slug };
+  } catch (err) {
+    return dbFailure("createArticle", err);
+  }
 }
 
-export async function deleteArticle(input: { password: string; id: string }) {
-  const data = z
+export async function deleteArticle(input: {
+  password: string;
+  id: string;
+}): Promise<ActionResult> {
+  const parsed = z
     .object({ password: z.string().min(1).max(200), id: z.string().min(1).max(64) })
-    .parse(input);
-  assertAdmin(data.password);
+    .safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid delete request." };
+  const data = parsed.data;
+
+  const authErr = adminError(data.password);
+  if (authErr) return { ok: false, error: authErr };
 
   const { ObjectId } = await import("mongodb");
   let oid: InstanceType<typeof ObjectId>;
   try {
     oid = new ObjectId(data.id);
   } catch {
-    throw new Error("Invalid article id");
+    return { ok: false, error: "Invalid article id." };
   }
 
-  const col = await getArticlesCollection();
-  const doc = await col.findOne({ _id: oid }, { projection: { slug: 1 } });
-  const res = await col.deleteOne({ _id: oid });
-  if (res.deletedCount === 0) throw new Error("Article not found");
+  try {
+    const col = await getArticlesCollection();
+    const doc = await col.findOne({ _id: oid }, { projection: { slug: 1 } });
+    const res = await col.deleteOne({ _id: oid });
+    if (res.deletedCount === 0) return { ok: false, error: "Article not found." };
 
-  revalidatePath("/");
-  if (doc?.slug) revalidatePath(`/article/${doc.slug}`);
-  return { ok: true };
+    revalidatePath("/");
+    if (doc?.slug) revalidatePath(`/article/${doc.slug}`);
+    return { ok: true };
+  } catch (err) {
+    return dbFailure("deleteArticle", err);
+  }
 }
 
 const DUMMY_ARTICLES = [
@@ -209,30 +250,39 @@ const DUMMY_ARTICLES = [
   },
 ];
 
-export async function seedDummyArticles(input: { password: string }) {
-  const data = z.object({ password: z.string().min(1).max(200) }).parse(input);
-  assertAdmin(data.password);
+export async function seedDummyArticles(input: {
+  password: string;
+}): Promise<ActionResult<{ inserted: number }>> {
+  const parsed = z.object({ password: z.string().min(1).max(200) }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid seed request." };
 
-  const col = await getArticlesCollection();
-  let inserted = 0;
-  for (const a of DUMMY_ARTICLES) {
-    const existing = await col.findOne({ slug: a.slug }, { projection: { _id: 1 } });
-    if (existing) continue;
-    const now = new Date();
-    await col.insertOne({
-      slug: a.slug,
-      title: a.title,
-      subtitle: a.subtitle ?? null,
-      body: a.body,
-      category: a.category,
-      author: a.author,
-      cover_image_url: a.cover_image_url ?? null,
-      published_at: new Date(a.published_at),
-      created_at: now,
-    } as ArticleDoc);
-    inserted += 1;
+  const authErr = adminError(parsed.data.password);
+  if (authErr) return { ok: false, error: authErr };
+
+  try {
+    const col = await getArticlesCollection();
+    let inserted = 0;
+    for (const a of DUMMY_ARTICLES) {
+      const existing = await col.findOne({ slug: a.slug }, { projection: { _id: 1 } });
+      if (existing) continue;
+      const now = new Date();
+      await col.insertOne({
+        slug: a.slug,
+        title: a.title,
+        subtitle: a.subtitle ?? null,
+        body: a.body,
+        category: a.category,
+        author: a.author,
+        cover_image_url: a.cover_image_url ?? null,
+        published_at: new Date(a.published_at),
+        created_at: now,
+      } as ArticleDoc);
+      inserted += 1;
+    }
+
+    revalidatePath("/");
+    return { ok: true, inserted };
+  } catch (err) {
+    return dbFailure("seedDummyArticles", err);
   }
-
-  revalidatePath("/");
-  return { inserted };
 }
