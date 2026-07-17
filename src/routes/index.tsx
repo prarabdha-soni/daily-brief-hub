@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Without fear and without favour." },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { category?: string } => ({
     category: typeof search.category === "string" ? search.category : undefined,
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(articlesQueryOptions),
